@@ -2,9 +2,9 @@ import Component from "flarum/Component";
 import Button from "flarum/components/Button";
 import saveSettings from "flarum/utils/saveSettings";
 import Alert from "flarum/components/Alert";
-import FieldSet from "flarum/components/FieldSet";
 import Select from "flarum/components/Select";
 import Switch from "flarum/components/Switch";
+import UploadImageButton from "flarum/components/UploadImageButton";
 
 export default class UploadPage extends Component {
 
@@ -15,12 +15,20 @@ export default class UploadPage extends Component {
         // the fields we need to watch and to save
         this.fields = [
             'availableUploadMethods',
+            'mimeTypesAllowed',
             'uploadMethod',
+            // image
             'resizeMaxWidth',
-            'resizeMaxHeight',
             'cdnUrl',
             'maxFileSize',
             'overrideAvatarUpload',
+            // watermark
+            'addsWatermarks',
+            'watermark',
+            'watermarkPosition',
+            // Imgur
+            'imgurClientId',
+            // AWS
             'awsS3Key',
             'awsS3Secret',
             'awsS3Bucket',
@@ -32,6 +40,19 @@ export default class UploadPage extends Component {
             'mustResize',
             'overrideAvatarUpload'
         ];
+
+        // watermark positions
+        this.watermarkPositions = {
+            'top-right': 'top-left',
+            'top-right': 'top-right',
+            'bottom-left': 'bottom-left',
+            'bottom-right': 'bottom-right',
+            'center': 'center',
+            'left': 'left',
+            'top': 'top',
+            'right': 'right',
+            'bottom': 'bottom'
+        };
 
         // options for the dropdown menu
         this.uploadMethodOptions = {};
@@ -58,115 +79,129 @@ export default class UploadPage extends Component {
      */
     view() {
         return [
-            m('div', {className: 'ImageUploadPage'}, [
+            m('div', {className: 'UploadPage'}, [
                 m('div', {className: 'container'}, [
                     m('form', {onsubmit: this.onsubmit.bind(this)}, [
-                        FieldSet.component({
-                            label: app.translator.trans('flagrow-upload.admin.labels.upload_method'),
-                            children: [
-                                m('div', {className: 'helpText'}, app.translator.trans('flagrow-upload.admin.help_texts.upload_method')),
+                        m('fieldset', {}, [
+                            m('legend', {}, app.translator.trans('flagrow-upload.admin.labels.upload_method')),
+                            m('div', {className: 'helpText'}, app.translator.trans('flagrow-upload.admin.help_texts.upload_method')),
+                            m('div', {}, [
                                 Select.component({
                                     options: this.uploadMethodOptions,
                                     onchange: this.values.uploadMethod,
                                     value: this.values.uploadMethod() || 'local'
                                 }),
-                                // m('div', {className: 'helpText'}, app.translator.trans('flagrow-upload.admin.help_texts.override_avatar_upload')),
-                                // Switch.component({
-                                //     state: this.values.overrideAvatarUpload() || false,
-                                //     children: app.translator.trans('flagrow-upload.admin.labels.override_avatar_upload'),
-                                //     onchange: this.values.overrideAvatarUpload
-                                // }),
-                            ]
-                        }),
-                        m('div', {className: 'ImageUploadPage-preferences'}, [
-                            FieldSet.component({
-                                label: app.translator.trans('flagrow-upload.admin.labels.preferences.title'),
-                                children: [
-                                    m('label', {}, app.translator.trans('flagrow-upload.admin.labels.preferences.max_file_size')),
-                                    m('input', {
-                                        className: 'FormControl',
-                                        value: this.values.maxFileSize() || 2048,
-                                        oninput: m.withAttr('value', this.values.maxFileSize)
-                                    }),
-                                ]
-                            })
+                            ]),
+                            // m('div', {className: 'helpText'}, app.translator.trans('flagrow-upload.admin.help_texts.override_avatar_upload')),
+                            // Switch.component({
+                            //     state: this.values.overrideAvatarUpload() || false,
+                            //     children: app.translator.trans('flagrow-upload.admin.labels.override_avatar_upload'),
+                            //     onchange: this.values.overrideAvatarUpload
+                            // }),
                         ]),
-                        m('div', {className: 'ImageUploadPage-resize'}, [
-                            FieldSet.component({
-                                label: app.translator.trans('flagrow-upload.admin.labels.resize.title'),
-                                children: [
-                                    m('div', {className: 'helpText'}, app.translator.trans('flagrow-upload.admin.help_texts.resize')),
-                                    Switch.component({
-                                        state: this.values.mustResize() || false,
-                                        children: app.translator.trans('flagrow-upload.admin.labels.resize.toggle'),
-                                        onchange: this.values.mustResize
-                                    }),
-                                    m('label', {}, app.translator.trans('flagrow-upload.admin.labels.resize.max_width')),
-                                    m('input', {
-                                        className: 'FormControl',
-                                        value: this.values.resizeMaxWidth() || 100,
-                                        oninput: m.withAttr('value', this.values.resizeMaxWidth),
-                                        disabled: !this.values.mustResize()
-                                    }),
-                                    m('label', {}, app.translator.trans('flagrow-upload.admin.labels.resize.max_height')),
-                                    m('input', {
-                                        className: 'FormControl',
-                                        value: this.values.resizeMaxHeight() || 100,
-                                        oninput: m.withAttr('value', this.values.resizeMaxHeight),
-                                        disabled: !this.values.mustResize()
-                                    })
-                                ]
-                            })
+                        m('fieldset', {className: 'UploadPage-preferences'}, [
+                            m('legend', {}, app.translator.trans('flagrow-upload.admin.labels.preferences.title')),
+                            m('label', {}, app.translator.trans('flagrow-upload.admin.labels.preferences.max_file_size')),
+                            m('input', {
+                                className: 'FormControl',
+                                value: this.values.maxFileSize() || 2048,
+                                oninput: m.withAttr('value', this.values.maxFileSize)
+                            }),
+                            m('label', {}, app.translator.trans('flagrow-upload.admin.labels.preferences.mime_types_allowed')),
+                            m('input', {
+                                className: 'FormControl',
+                                value: this.values.mimeTypesAllowed() || "(image|audio|video)\\/.*",
+                                oninput: m.withAttr('value', this.values.mimeTypesAllowed)
+                            }),
                         ]),
-                        m('div', {
-                            className: 'ImageUploadPage-local',
+                        m('fieldset', {className: 'UploadPage-resize'}, [
+                            m('legend', {}, app.translator.trans('flagrow-upload.admin.labels.resize.title')),
+                            m('div', {className: 'helpText'}, app.translator.trans('flagrow-upload.admin.help_texts.resize')),
+                            Switch.component({
+                                state: this.values.mustResize() || false,
+                                children: app.translator.trans('flagrow-upload.admin.labels.resize.toggle'),
+                                onchange: this.values.mustResize
+                            }),
+                            m('label', {}, app.translator.trans('flagrow-upload.admin.labels.resize.max_width')),
+                            m('input', {
+                                className: 'FormControl',
+                                value: this.values.resizeMaxWidth() || 100,
+                                oninput: m.withAttr('value', this.values.resizeMaxWidth),
+                                disabled: !this.values.mustResize()
+                            }),
+                        ]),
+                        m('fieldset', {className: 'UploadPage-watermark'}, [
+                            m('legend', {}, app.translator.trans('flagrow-upload.admin.labels.watermark.title')),
+                            m('div', {className: 'helpText'}, app.translator.trans('flagrow-upload.admin.help_texts.watermark')),
+                            Switch.component({
+                                state: this.values.addsWatermarks() || false,
+                                children: app.translator.trans('flagrow-upload.admin.labels.watermark.toggle'),
+                                onchange: this.values.addsWatermarks
+                            }),
+                            m('label', {}, app.translator.trans('flagrow-upload.admin.labels.watermark.position')),
+                            m('div', {}, [
+                                Select.component({
+                                    options: this.watermarkPositions,
+                                    onchange: this.values.watermarkPosition,
+                                    value: this.values.watermarkPosition() || 'bottom-right'
+                                }),
+                            ]),
+                            m('label', {}, app.translator.trans('flagrow-upload.admin.labels.watermark.file')),
+                            <UploadImageButton name="flagrow/watermark"/>
+                        ]),
+                        m('fieldset', {
+                            className: 'UploadPage-local',
                             style: {display: (this.values.uploadMethod() === 'local' ? "block" : "none")}
                         }, [
-                            FieldSet.component({
-                                label: app.translator.trans('flagrow-upload.admin.labels.local.title'),
-                                children: [
-                                    m('label', {}, app.translator.trans('flagrow-upload.admin.labels.local.cdn_url')),
-                                    m('input', {
-                                        className: 'FormControl',
-                                        value: this.values.cdnUrl() || '',
-                                        oninput: m.withAttr('value', this.values.cdnUrl)
-                                    }),
-                                ]
-                            })
+                            m('legend', {}, app.translator.trans('flagrow-upload.admin.labels.local.title')),
+                            m('label', {}, app.translator.trans('flagrow-upload.admin.labels.local.cdn_url')),
+                            m('input', {
+                                className: 'FormControl',
+                                value: this.values.cdnUrl() || '',
+                                oninput: m.withAttr('value', this.values.cdnUrl)
+                            }),
                         ]),
-                        m('div', {
-                            className: 'ImageUploadPage-aws-s3',
+                        m('fieldset', {
+                            className: 'UploadPage-imgur',
+                            style: {display: (this.values.uploadMethod() === 'imgur' ? "block" : "none")}
+                        }, [
+                            m('legend', {}, app.translator.trans('flagrow-upload.admin.labels.imgur.title')),
+                            m('label', {}, app.translator.trans('flagrow-upload.admin.labels.imgur.client_id')),
+                            m('input', {
+                                className: 'FormControl',
+                                value: this.values.imgurClientId() || '',
+                                oninput: m.withAttr('value', this.values.imgurClientId)
+                            }),
+                        ]),
+                        m('fieldset', {
+                            className: 'UploadPage-aws-s3',
                             style: {display: (this.values.uploadMethod() === 'aws-s3' ? "block" : "none")}
                         }, [
-                            FieldSet.component({
-                                label: app.translator.trans('flagrow-upload.admin.labels.aws-s3.title'),
-                                children: [
-                                    m('label', {}, app.translator.trans('flagrow-upload.admin.labels.aws-s3.key')),
-                                    m('input', {
-                                        className: 'FormControl',
-                                        value: this.values.awsS3Key() || '',
-                                        oninput: m.withAttr('value', this.values.awsS3Key)
-                                    }),
-                                    m('label', {}, app.translator.trans('flagrow-upload.admin.labels.aws-s3.secret')),
-                                    m('input', {
-                                        className: 'FormControl',
-                                        value: this.values.awsS3Secret() || '',
-                                        oninput: m.withAttr('value', this.values.awsS3Secret)
-                                    }),
-                                    m('label', {}, app.translator.trans('flagrow-upload.admin.labels.aws-s3.bucket')),
-                                    m('input', {
-                                        className: 'FormControl',
-                                        value: this.values.awsS3Bucket() || '',
-                                        oninput: m.withAttr('value', this.values.awsS3Bucket)
-                                    }),
-                                    m('label', {}, app.translator.trans('flagrow-upload.admin.labels.aws-s3.region')),
-                                    m('input', {
-                                        className: 'FormControl',
-                                        value: this.values.awsS3Region() || '',
-                                        oninput: m.withAttr('value', this.values.awsS3Region)
-                                    }),
-                                ]
-                            })
+                            m('legend', {}, app.translator.trans('flagrow-upload.admin.labels.aws-s3.title')),
+                            m('label', {}, app.translator.trans('flagrow-upload.admin.labels.aws-s3.key')),
+                            m('input', {
+                                className: 'FormControl',
+                                value: this.values.awsS3Key() || '',
+                                oninput: m.withAttr('value', this.values.awsS3Key)
+                            }),
+                            m('label', {}, app.translator.trans('flagrow-upload.admin.labels.aws-s3.secret')),
+                            m('input', {
+                                className: 'FormControl',
+                                value: this.values.awsS3Secret() || '',
+                                oninput: m.withAttr('value', this.values.awsS3Secret)
+                            }),
+                            m('label', {}, app.translator.trans('flagrow-upload.admin.labels.aws-s3.bucket')),
+                            m('input', {
+                                className: 'FormControl',
+                                value: this.values.awsS3Bucket() || '',
+                                oninput: m.withAttr('value', this.values.awsS3Bucket)
+                            }),
+                            m('label', {}, app.translator.trans('flagrow-upload.admin.labels.aws-s3.region')),
+                            m('input', {
+                                className: 'FormControl',
+                                value: this.values.awsS3Region() || '',
+                                oninput: m.withAttr('value', this.values.awsS3Region)
+                            }),
                         ]),
                         Button.component({
                             type: 'submit',

@@ -17,6 +17,8 @@ namespace Flagrow\Upload\Adapters;
 use Carbon\Carbon;
 use Flagrow\Upload\Contracts\UploadAdapter;
 use Flagrow\Upload\File;
+use Flagrow\Upload\Helpers\Settings;
+use Flarum\Forum\UrlGenerator;
 use League\Flysystem\Filesystem;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
@@ -62,6 +64,41 @@ class Local implements UploadAdapter
     }
 
     /**
+     * @param File $file
+     */
+    protected function generateFilename(File $file)
+    {
+        $today = (new Carbon());
+
+        $file->path = sprintf(
+            "%s/%s",
+            $today->toDateString(),
+            $today->toTimeString() . $today->micro . '-' . $file->base_name
+        );
+    }
+
+    /**
+     * @param File $file
+     */
+    protected function generateUrl(File $file)
+    {
+        $file->url = str_replace(
+            public_path(),
+            '',
+            $this->filesystem->getAdapter()->getPathPrefix() . $file->path
+        );
+
+        /** @var Settings $settings */
+        $settings = app()->make(Settings::class);
+
+        if ($settings->get('cdnUrl')) {
+            $file->url = $settings->get('cdnUrl') . $file->url;
+        } else {
+            $file->url = app(UrlGenerator::class)->toPath(ltrim($file->url, '/'));
+        }
+    }
+
+    /**
      * In case deletion is not possible, return false.
      *
      * @param File $file
@@ -102,31 +139,5 @@ class Local implements UploadAdapter
     public function getFilesystem()
     {
         return $this->filesystem;
-    }
-
-    /**
-     * @param File $file
-     */
-    protected function generateFilename(File $file)
-    {
-        $today = (new Carbon());
-
-        $file->path = sprintf(
-            "%s/%s",
-            $today->toDateString(),
-            $today->toTimeString() . $today->micro . '-' . $file->base_name
-        );
-    }
-
-    /**
-     * @param File $file
-     */
-    protected function generateUrl(File $file)
-    {
-        $file->url = str_replace(
-            public_path(),
-            '',
-            $this->filesystem->getAdapter()->getPathPrefix() . $file->path
-        );
     }
 }

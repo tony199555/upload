@@ -27,7 +27,7 @@ export default class UploadButton extends Component {
             m('form#flagrow-upload-form', [
                 m('input', {
                     type: 'file',
-                    name: 'flagrow-upload-input',
+                    multiple: true,
                     onchange: this.process.bind(this)
                 })
             ])
@@ -41,17 +41,28 @@ export default class UploadButton extends Component {
      */
     process(e) {
         // get the file from the input field
-        const data = new FormData();
-        data.append('file', $(e.target)[0].files[0]);
+
+        var files = $(e.target)[0].files;
 
         // set the button in the loading state (and redraw the element!)
         this.loading = true;
         m.redraw();
 
+        this.uploadFiles(files, this.success, this.failure);
+    }
+
+    uploadFiles(files, successCallback, failureCallback) {
+        const data = new FormData;
+
+        for (var i = 0; i < files.length; i++) {
+            data.append('files[]', files[i]);
+        }
+
         // send a POST request to the api
-        app.request({
+        return app.request({
             method: 'POST',
             url: app.forum.attribute('apiUrl') + '/flagrow/upload',
+            // prevent JSON.stringify'ing the form data in the XHR call
             serialize: raw => raw,
             data
         }).then(
@@ -74,15 +85,21 @@ export default class UploadButton extends Component {
      *
      * @param file
      */
-    success(file) {
-        console.log(file);
+    success(response) {
+        var markdownString = '';
+        var file;
 
-        // create a markdown string that holds the image link
+        for (var i = 0; i < response.data.length; i++) {
 
-        if (file.data.attributes.markdownString) {
-            var markdownString = '\n' + file.data.attributes.markdownString + '\n';
-        } else {
-            var markdownString = '\n![' + file.data.attributes.base_name + '](' + file.data.attributes.url + ')\n';
+            file = response.data[i].attributes;
+
+            // create a markdown string that holds the image link
+
+            if (file.markdown_string) {
+                markdownString += '\n' + file.markdown_string + '\n';
+            } else {
+                markdownString += '\n[' + file.base_name + '](' + file.url + ')\n';
+            }
         }
 
         // place the Markdown image link in the Composer

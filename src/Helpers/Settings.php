@@ -18,6 +18,7 @@ use Aws\AwsClient;
 use Flarum\Settings\SettingsRepositoryInterface;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
+use Imgur\Client as Imgur;
 
 /**
  * @property int $maxFileSize
@@ -25,18 +26,27 @@ use Illuminate\Support\Collection;
 class Settings
 {
     const DEFAULT_MAX_FILE_SIZE = 2048;
+    const DEFAULT_MAX_IMAGE_WIDTH = 100;
 
     protected $definition = [
         'uploadMethod',
+        'mimeTypesAllowed',
 
         // Images
         'mustResize',
         'resizeMaxWidth',
-        'resizeMaxHeight',
         'cdnUrl',
+
+        // Watermarks
+        'addsWatermarks',
+        'watermarkPosition',
+        'watermark',
 
         // Override avatar upload
         'overrideAvatarUpload',
+
+        // Imgur
+        'imgurClientId',
 
         // AWS
         'awsS3Key',
@@ -129,6 +139,8 @@ class Settings
         if (class_exists(AwsClient::class)) {
             $methods[] = 'aws-s3';
         }
+
+        $methods[] = 'imgur';
 
         return collect($methods)
             ->keyBy(function ($item) {
