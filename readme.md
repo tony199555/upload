@@ -1,14 +1,15 @@
 # Upload by ![flagrow logo](https://avatars0.githubusercontent.com/u/16413865?v=3&s=15) [flagrow](https://discuss.flarum.org/d/1832-flagrow-extension-developer-group)
 
-[![Latest Stable Version](https://poser.pugx.org/flagrow/upload/v/stable)](https://packagist.org/packages/flagrow/upload) [![Total Downloads](https://poser.pugx.org/flagrow/upload/downloads)](https://packagist.org/packages/flagrow/flarum-ext-:package)
+[![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/flagrow/upload/license.md) [![Latest Stable Version](https://img.shields.io/packagist/v/flagrow/upload.svg)](https://github.com/flagrow/upload) [![Total Downloads](https://img.shields.io/packagist/dt/flagrow/upload.svg)](https://github.com/flagrow/upload) [![Donate](https://img.shields.io/badge/paypal-donate-yellow.svg)](https://paypal.me/luceos)
 
-An extension that handles file uploads intelligently for your forum. This is the descendant of the Flagrow image upload extension.
+An extension that handles file uploads intelligently for your forum.
 
 ### features
 
 - For images:
   - Auto watermarks.
   - Auto resizing.
+- Mime type to upload adapter mapping.
 - Whitelisting mime types.
 - Uploading on different storage services (local, imgur, AWS S3 for instance).
 - Drag and drop uploads.
@@ -33,6 +34,23 @@ php flarum cache:clear
 ### configuration
 
 Enable the extension, a new tab will appear on the left hand side. This separate settings page allows you to further configure the extension.
+
+Make sure you configure the upload permission on the permissions page as well.
+
+#### Mimetype regular expression
+
+Regular expressions allow you a lot of freedom, but they are also very difficult to understand. Here are some pointers, but feel free to ask
+for help on the official Flarum forums.
+
+In case you want to allow all regular file types including video, music, compressed files and images, use this:
+
+```text
+(video\/(3gpp|mp4|mpeg|quicktime|webm))|(audio\/(aiff|midi|mpeg|mp4))|(image\/(gif|jpeg|png))|(application\/(x-(7z|rar)-compressed|zip|arj|x-(bzip2|gzip|lha|stuffit|tar)|pdf))
+```
+
+A mimetype consists of a primary and secondary type. The primary type can be `image`, `video` and `application` for instance. The secondary
+is like a more detailed specification, eg `png`, `pdf` etc. These two are divided by a `/`, in regex you have to escape this character by using: `\/`.
+
 
 ### donate
 
